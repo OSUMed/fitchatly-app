@@ -1,0 +1,113 @@
+{
+    "taskDefinitionArn": "arn:aws:ecs:us-east-1:183295439509:task-definition/ai-chat-app:34",
+    "containerDefinitions": [
+        {
+            "name": "ai-chat-app",
+            "image": "183295439509.dkr.ecr.us-east-1.amazonaws.com/ai-chat-app:latest",
+            "cpu": 256,
+            "memory": 512,
+            "portMappings": [
+                {
+                    "containerPort": 3000,
+                    "protocol": "tcp",
+                    "name": "ai-chat-app-3000-tcp",
+                    "appProtocol": "http"
+                }
+            ],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "AUTH_TRUST_HOST",
+                    "value": "true"
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "OPENAI_API_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:183295439509:secret:ai-chat-app/openai_api_key"
+                },
+                {
+                    "name": "DATABASE_URL",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:183295439509:secret:ai-chat-app/database_url"
+                },
+                {
+                    "name": "NEXTAUTH_SECRET",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:183295439509:secret:ai-chat-app/nextauth_secret"
+                },
+                {
+                    "name": "GOOGLE_CLIENT_ID",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:183295439509:secret:ai-chat-app/google_client_id"
+                },
+                {
+                    "name": "GOOGLE_CLIENT_SECRET",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:183295439509:secret:ai-chat-app/google_client_secret"
+                },
+                {
+                    "name": "NEXTAUTH_URL",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:183295439509:secret:ai-chat-app/nextauth_url"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/ai-chat-app",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ],
+    "family": "ai-chat-app",
+    "taskRoleArn": "arn:aws:iam::183295439509:role/ai-chat-app-ecs-task-role",
+    "executionRoleArn": "arn:aws:iam::183295439509:role/ai-chat-app-ecs-task-exec-role",
+    "networkMode": "awsvpc",
+    "revision": 34,
+    "volumes": [],
+    "status": "ACTIVE",
+    "requiresAttributes": [
+        {
+            "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+        },
+        {
+            "name": "ecs.capability.execution-role-awslogs"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.ecr-auth"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.task-iam-role"
+        },
+        {
+            "name": "ecs.capability.execution-role-ecr-pull"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+        },
+        {
+            "name": "ecs.capability.task-eni"
+        },
+        {
+            "name": "com.amazonaws.ecs.capability.docker-remote-api.1.29"
+        }
+    ],
+    "placementConstraints": [],
+    "compatibilities": [
+        "EC2"
+    ],
+    "requiresCompatibilities": [
+        "EC2"
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "registeredAt": "2025-04-12T05:56:04.248000-07:00",
+    "registeredBy": "arn:aws:iam::183295439509:root",
+    "tags": [
+        {
+            "key": "Name",
+            "value": "ai-chat-app-task-def"
+        }
+    ]
+}

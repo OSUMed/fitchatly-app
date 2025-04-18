@@ -1,0 +1,81 @@
+name: Deploy to AWS ECS
+
+on:
+  push:
+    branches:
+      - aws-deploy # TEMPORARY CHANGE FOR TESTING
+
+permissions:
+  contents: read # Needed to check out the repository
+
+env:
+  AWS_REGION: us-east-1 # Hardcode region
+  ECR_REPOSITORY: ai-chat-app # Hardcode ECR repo name
+  ECS_CLUSTER_NAME: ai-chat-app-cluster # Hardcode ECS cluster name
+  ECS_SERVICE_NAME: ai-chat-app-service # Hardcode ECS service name
+  ECS_TASK_DEFINITION_FAMILY: ai-chat-app # Hardcode task definition family name
+  CONTAINER_NAME: ai-chat-app # Hardcode container name from task definition
+
+jobs:
+  deploy:
+    name: Build, Push, and Deploy
+    runs-on: ubuntu-latest
+    environment: production # Optional: Define a GitHub environment if needed
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract short commit hash
+        id: commit
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG_COMMIT: ${{ steps.commit.outputs.sha_short }}
+          IMAGE_TAG_LATEST: latest
+        run: |
+          # Build and tag with commit hash and latest
+          docker build --platform linux/amd64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_COMMIT -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST .
+          
+          echo "Pushing image $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_COMMIT"
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_COMMIT
+          
+          echo "Pushing image $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST"
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_LATEST
+          
+          # Set the image URI with commit hash tag as an output for the next step
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG_COMMIT" >> $GITHUB_OUTPUT
+
+
+      - name: Render Amazon ECS task definition
+        id: render-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json # Input file from repo
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }} # Use the specific commit-hash tagged image URI
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.render-task-def.outputs.task-definition }} # Use the rendered JSON output
+          service: ${{ env.ECS_SERVICE_NAME }}
+          cluster: ${{ env.ECS_CLUSTER_NAME }}
+          wait-for-service-stability: true # Wait for the deployment to complete and service to be stable
